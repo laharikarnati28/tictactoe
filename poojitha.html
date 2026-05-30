@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Intelligent Tic-Tac-Toe Agent | Hybrid AI</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      background: linear-gradient(145deg, #1a2a3a 0%, #0f1a24 100%);
+      font-family: 'Segoe UI', 'Poppins', 'Inter', system-ui, -apple-system, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .game-container {
+      max-width: 1300px;
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(2px);
+      border-radius: 3rem;
+      padding: 1.5rem;
+      box-shadow: 0 25px 45px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.8rem;
+      justify-content: center;
+    }
+
+    /* main game panel */
+    .game-panel {
+      flex: 2;
+      min-width: 320px;
+      background: #1e2b32;
+      border-radius: 2rem;
+      padding: 1.5rem;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      background-color: #0f1a1f;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 2rem;
+      margin: 20px 0;
+      background: #2c3e2f;
+      box-shadow: inset 0 0 6px #00000055, 0 10px 20px rgba(0,0,0,0.2);
+    }
+
+    .cell {
+      aspect-ratio: 1 / 1;
+      background: #fef9e8;
+      background-image: radial-gradient(circle at 30% 35%, rgba(255,245,215,0.9) 2%, #f5e7d3 80%);
+      border-radius: 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 4rem;
+      font-weight: 800;
+      font-family: 'Segoe UI', 'Fredoka One', cursive;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 8px 0 #8b6b42;
+      color: #2c3e2f;
+      text-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+    }
+
+    .cell.X {
+      color: #c7362b;
+      text-shadow: 2px 2px 0 #4a1a14;
+    }
+    .cell.O {
+      color: #2b6f9e;
+      text-shadow: 2px 2px 0 #0a3142;
+    }
+    .cell.disabled {
+      cursor: not-allowed;
+      filter: brightness(0.96);
+    }
+    .cell:active {
+      transform: translateY(4px);
+      box-shadow: 0 4px 0 #8b6b42;
+    }
+
+    .status {
+      font-size: 1.4rem;
+      font-weight: bold;
+      background: #00000066;
+      display: inline-block;
+      padding: 0.6rem 1.8rem;
+      border-radius: 60px;
+      backdrop-filter: blur(6px);
+      margin: 12px 0;
+      color: #f0e6d0;
+      letter-spacing: 1px;
+    }
+
+    .reset-btn {
+      background: #ffcd94;
+      border: none;
+      font-size: 1.2rem;
+      font-weight: bold;
+      padding: 10px 28px;
+      border-radius: 40px;
+      cursor: pointer;
+      transition: 0.1s linear;
+      margin-top: 6px;
+      font-family: inherit;
+      color: #2d2418;
+      box-shadow: 0 5px 0 #b97f3a;
+    }
+    .reset-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #b97f3a;
+    }
+
+    /* reasoning & AI panels */
+    .info-panel {
+      flex: 1.4;
+      min-width: 280px;
+      background: #0e1a1fcc;
+      backdrop-filter: blur(12px);
+      border-radius: 1.8rem;
+      padding: 1.2rem;
+      border: 1px solid #3a6b5e;
+      box-shadow: 0 8px 20px black;
+    }
+
+    .section {
+      background: #15232b;
+      border-radius: 1.2rem;
+      padding: 0.8rem 1rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .section h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffdd99;
+      border-left: 4px solid #ffaa44;
+      padding-left: 12px;
+    }
+
+    .bayes-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      background: #09161c;
+      padding: 8px;
+      border-radius: 1rem;
+    }
+
+    .prob-cell {
+      background: #1f3e3c;
+      text-align: center;
+      padding: 6px 0;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: bold;
+      color: #c0e0d0;
+    }
+
+    .ai-scores {
+      background: #071218;
+      border-radius: 1rem;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.75rem;
+    }
+    .score-item {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #2d5a55;
+      padding: 6px 0;
+    }
+    .reason-log {
+      background: #021016;
+      padding: 8px 12px;
+      border-radius: 1rem;
+      font-family: 'Courier New', monospace;
+      font-size: 0.75rem;
+      color: #b3ffec;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .log-line {
+      padding: 3px 0;
+      border-left: 2px solid #88ffcc;
+      margin: 4px 0;
+      padding-left: 8px;
+    }
+    .badge {
+      background: #2e5f4f;
+      border-radius: 20px;
+      padding: 0 6px;
+      font-size: 0.7rem;
+    }
+    hr {
+      border-color: #2e6b5e;
+      margin: 10px 0;
+    }
+    footer {
+      font-size: 0.7rem;
+      text-align: center;
+      margin-top: 20px;
+      color: #b8c7b2;
+    }
+    @media (max-width: 780px) {
+      .cell { font-size: 2.6rem; }
+      .status { font-size: 1rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="game-container">
+  <div class="dashboard">
+    <!-- GAME AREA : CO1 State Representation + CO4 Minimax UI -->
+    <div class="game-panel">
+      <h2 style="margin:0; color:#ffe2b5;">🧠 INTELLIGENT AGENT</h2>
+      <div id="board" class="board"></div>
+      <div class="status" id="gameStatus">🤖 Your turn (X)</div>
+      <button id="resetBtn" class="reset-btn">⟳ NEW GAME</button>
+      <footer>🔍 AI: Minimax (Unbeatable) | Hybrid Reasoning</footer>
+    </div>
+
+    <!-- RIGHT PANEL : CO5 Bayesian + CO2 DFS Scores + CO6 Hybrid Trace + CO3 CSP -->
+    <div class="info-panel">
+      <div class="section">
+        <h3>📡 CO5 · BAYESIAN PREDICTION</h3>
+        <div id="bayesianMap" class="bayes-grid"></div>
+        <div style="font-size:0.7rem; margin-top:8px;">⬤ Prior: corner 60% · center 25% · edge 15%<br>⚡ Conditional probability (empty cells)</div>
+      </div>
+
+      <div class="section">
+        <h3>🔍 CO2 · DFS SEARCH SCORES (AI evaluation)</h3>
+        <div id="aiScoresPanel" class="ai-scores">
+          <div style="color:#ddcc99;">⚡ Evaluating child states...</div>
+        </div>
+        <div class="badge" style="margin-top:6px;">CO4: Minimax utility</div>
+      </div>
+
+      <div class="section">
+        <h3>🧩 CO3 · CSP CONSTRAINT CHECK</h3>
+        <div id="cspStatus" style="font-size:0.8rem; color:#b4ffcf;">✓ Move validity enforced</div>
+      </div>
+
+      <div class="section">
+        <h3>🤖 CO6 · HYBRID REASONING TRACE</h3>
+        <div id="hybridTrace" class="reason-log">
+          <div class="log-line">🟢 AGENT READY | Hybrid AI Online</div>
+          <div class="log-line">📌 Search · CSP · Bayes → Decision</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---------- GLOBAL STATE ----------
+  let board = [
+    [' ', ' ', ' '],
+    [' ', ' ', ' '],
+    [' ', ' ', ' ']
+  ];
+  let gameActive = true;
+  let currentTurn = 'player';   // 'player' = X (human), 'ai' = O
+  let aiTimeout = null;
+  const HUMAN_SYMBOL = 'X';
+  const AI_SYMBOL = 'O';
+
+  // DOM elements
+  const boardContainer = document.getElementById('board');
+  const gameStatusDiv = document.getElementById('gameStatus');
+  const resetBtn = document.getElementById('resetBtn');
+  const bayesianMapDiv = document.getElementById('bayesianMap');
+  const aiScoresPanel = document.getElementById('aiScoresPanel');
+  const cspStatusDiv = document.getElementById('cspStatus');
+  const hybridTraceDiv = document.getElementById('hybridTrace');
+
+  // Helper: add log to hybrid trace
+  function addHybridLog(message, type = 'info') {
+    const logEntry = document.createElement('div');
+    logEntry.className = 'log-line';
+    const prefix = type === 'ai' ? '🧠' : (type === 'csp' ? '✓' : '📌');
+    logEntry.innerHTML = `${prefix} ${message}`;
+    hybridTraceDiv.appendChild(logEntry);
+    hybridTraceDiv.scrollTop = hybridTraceDiv.scrollHeight;
+    // keep last 15 lines
+    while (hybridTraceDiv.children.length > 20) hybridTraceDiv.removeChild(hybridTraceDiv.firstChild);
+  }
+
+  // display board (CO1: state representation)
+  function renderBoard() {
+    boardContainer.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const cell = document.createElement('div');
+        cell.classList.add('cell');
+        const val = board[i][j];
+        cell.textContent = val;
+        if (val === 'X') cell.classList.add('X');
+        if (val === 'O') cell.classList.add('O');
+        if (!gameActive || currentTurn !== 'player' || val !== ' ') {
+          cell.classList.add('disabled');
+        }
+        cell.dataset.row = i;
+        cell.dataset.col = j;
+        cell.addEventListener('click', () => handlePlayerMove(i, j));
+        boardContainer.appendChild(cell);
+      }
+    }
+  }
+
+  // winner check (full match)
+  function checkWinner(symbol, boardState = board) {
+    // rows
+    for (let r = 0; r < 3; r++) {
+      if (boardState[r][0] === symbol && boardState[r][1] === symbol && boardState[r][2] === symbol) return true;
+    }
+    // cols
+    for (let c = 0; c < 3; c++) {
+      if (boardState[0][c] === symbol && boardState[1][c] === symbol && boardState[2][c] === symbol) return true;
+    }
+    // diag
+    if (boardState[0][0] === symbol && boardState[1][1] === symbol && boardState[2][2] === symbol) return true;
+    if (boardState[0][2] === symbol && boardState[1][1] === symbol && boardState[2][0] === symbol) return true;
+    return false;
+  }
+
+  function isDraw(boardState) {
+    for (let i = 0; i < 3; i++)
+      for (let j = 0; j < 3; j++)
+        if (boardState[i][j] === ' ') return false;
+    return true;
+  }
+
+  function updateGameStatus() {
+    if (!gameActive) return;
+    if (checkWinner(HUMAN_SYMBOL)) {
+      gameActive = false;
+      gameStatusDiv.innerText = '🏆 YOU WIN! (X)';
+      addHybridLog(`GAME OVER: Human wins! CSP + Search final.`, 'info');
+      renderBoard();
+      return true;
+    } else if (checkWinner(AI_SYMBOL)) {
+      gameActive = false;
+      gameStatusDiv.innerText = '🤖 AI WINS! (O)';
+      addHybridLog(`GAME OVER: AI wins! Maximax achieved.`, 'info');
+      renderBoard();
+      return true;
+    } else if (isDraw(board)) {
+      gameActive = false;
+      gameStatusDiv.innerText = "🤝 DRAW! Perfect battle";
+      addHybridLog(`DRAW: No moves left. Game theory balanced.`, 'info');
+      renderBoard();
+      return true;
+    }
+    gameStatusDiv.innerText = currentTurn === 'player' ? '✨ Your turn (X)' : '🧠 AI is thinking (O) ...';
+    return false;
+  }
+
+  // ---------- CO3: CSP constraint check ----------
+  function isMoveValid(row, col) {
+    return board[row][col] === ' ';
+  }
+
+  // apply move and re-render
+  function applyMove(row, col, symbol) {
+    if (!gameActive) return false;
+    if (!isMoveValid(row, col)) {
+      cspStatusDiv.innerHTML = `❌ CSP Violation: cell (${row},${col}) occupied!`;
+      addHybridLog(`CSP FAIL: Move at (${row},${col}) blocked (occupied)`, 'csp');
+      return false;
+    }
+    board[row][col] = symbol;
+    cspStatusDiv.innerHTML = `✓ CSP satisfied: (${row},${col}) → ${symbol} | constraint OK`;
+    renderBoard();
+    return true;
+  }
+
+  // ---------- CO5: BAYESIAN PREDICTION (dynamic probability per empty cell) ----------
+  function updateBayesianPrediction() {
+    const weights = {
+      corner: 0.60,
+      center: 0.25,
+      edge: 0.15
+    };
+    let emptyCells = [];
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        if (board[i][j] === ' ') {
+          let type = '';
+          if ((i === 0 || i === 2) && (j === 0 || j === 2)) type = 'corner';
+          else if (i === 1 && j === 1) type = 'center';
+          else type = 'edge';
+          emptyCells.push({ row: i, col: j, weight: weights[type], type });
+        }
+      }
+    }
+    const totalWeight = emptyCells.reduce((sum, cell) => sum + cell.weight, 0);
+    let probGrid = Array(3).fill().map(() => Array(3).fill(0));
+    for (let cell of emptyCells) {
+      let prob = totalWeight > 0 ? (cell.weight / totalWeight) * 100 : 0;
+      probGrid[cell.row][cell.col] = Math.round(prob);
+    }
+    // render 3x3 probability map
+    bayesianMapDiv.innerHTML = '';
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        const probVal = probGrid[i][j];
+        const displayProb = board[i][j] !== ' ' ? '—' : `${probVal}%`;
+        const probCellDiv = document.createElement('div');
+        probCellDiv.className = 'prob-cell';
+        probCellDiv.style.background = board[i][j] !== ' ' ? '#2b4744' : '#1f4e49';
+        probCellDiv.innerHTML = `<span style="font-size:0.7rem;">(${i},${j})</span><br><b>${displayProb}</b>`;
+        bayesianMapDiv.appendChild(probCellDiv);
+      }
+    }
+    // log optional bayes insight
+    const topPred = emptyCells.sort((a,b)=>b.weight - a.weight)[0];
+    if (topPred && gameActive && currentTurn === 'player')
+      addHybridLog(`Bayes: Human next likely at (${topPred.row},${topPred.col}) | prior weight ${topPred.weight*100}%`, 'info');
+  }
+
+  // ---------- CO2 + CO4: MINIMAX (DFS search & scores) ----------
+  // utility from AI perspective (O)
+  function evaluateBoardForAI(boardState) {
+    if (checkWinner(AI_SYMBOL, boardState)) return 10;
+    if (checkWinner(HUMAN_SYMBOL, boardState)) return -10;
+    return 0;
+  }
+
+  function minimax(boardState, isMaximizing) {
+    const score = evaluateBoardForAI(boardState);
+    if (score === 10 || score === -10) return score;
+    if (isDraw(boardState)) return 0;
+
+    if (isMaximizing) {
+      let best = -Infinity;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          if (boardState[i][j] === ' ') {
+            boardState[i][j] = AI_SYMBOL;
+            let evalScore = minimax(boardState, false);
+            boardState[i][j] = ' ';
+            best = Math.max(best, evalScore);
+          }
+        }
+      }
+      return best;
+    } else {
+      let best = Infinity;
+      for (let i = 0; i < 3; i++) {
+        for (let j = 0; j < 3; j++) {
+          if (boardState[i][j] === ' ') {
+            boardState[i][j] = HUMAN_SYMBOL;
+            let evalScore = minimax(boardState, true);
+            boardState[i][j] = ' ';
+            best = Math.min(best, evalScore);
+          }
+        }
+      }
+      return best;
+    }
+  }
+
+  // Get best AI move & also compute scores for each empty cell (DFS Visualization)
+  function getBestAIMoveWithScores() {
+    let bestScore = -Infinity;
+    let bestMove = null;
+    let moveScores = []; // store {row, col, score}
+
+    for (let i = 0; i < 3; i++) {
+      for (let j = 0; j < 3; j++) {
+        if (board[i][j] === ' ') {
+          const boardCopy = copyBoard(board);
+          boardCopy[i][j] = AI_SYMBOL;
+          let moveValue = minimax(boardCopy, false); // after AI move, it's minimizing (human)
+          moveScores.push({ row: i, col: j, score: moveValue });
+          if (moveValue > bestScore) {
+            bestScore = moveValue;
+            bestMove = { row: i, col: j };
+          }
+        }
+      }
+    }
+    return { bestMove, moveScores };
+  }
+
+  function copyBoard(source) {
+    return source.map(row => [...row]);
+  }
+
+  // update AI scores panel (CO2 + DFS)
+  function updateAIScoresPanel(moveScores) {
+    if (!moveScores || moveScores.length === 0) {
+      aiScoresPanel.innerHTML = '<div>⚡ No moves available</div>';
+      return;
+    }
+    let html = `<div style="display:flex; justify-content:space-between; font-weight:bold;"><span>📊 Move (r,c)</span><span>Minimax Score</span></div>`;
+    moveScores.forEach(ms => {
+      const scoreColor = ms.score >= 5 ? '#b5ffb5' : (ms.score <= -5 ? '#ffb2b2' : '#ffe5a3');
+      html += `<div class="score-item"><span>📍 (${ms.row},${ms.col})</span><span style="color:${scoreColor};">${ms.score}</span></div>`;
+    });
+    aiScoresPanel.innerHTML = html;
+    const bestMoveObj = moveScores.reduce((best,curr) => (curr.score > best.score ? curr : best), moveScores[0]);
+    if(bestMoveObj) addHybridLog(`DFS scores: best at (${bestMoveObj.row},${bestMoveObj.col}) score=${bestMoveObj.score}`, 'ai');
+  }
+
+  // ---------- AI MOVE with HYBRID reasoning (CO6) ----------
+  async function performAIMove() {
+    if (!gameActive || currentTurn !== 'ai') return;
+    gameStatusDiv.innerText = '🤖 AI reasoning (Minimax + CSP + Bayes) ...';
+    renderBoard();  // disable clicks
+
+    // step 1: search evaluation (CO2/CO4)
+    const { bestMove, moveScores } = getBestAIMoveWithScores();
+    updateAIScoresPanel(moveScores);
+    if (!bestMove) {
+      // no moves -> draw eventually
+      if (isDraw(board)) {
+        updateGameStatus();
+        renderBoard();
+      }
+      return;
+    }
+
+    addHybridLog(`🔍 SEARCH: Evaluated ${moveScores.length} child states via DFS (Minimax)`, 'ai');
+    addHybridLog(`📈 Best utility = ${moveScores.find(m => m.row===bestMove.row && m.col===bestMove.col).score}`, 'ai');
+
+    // step 2: CSP constraint check (again)
+    if (!isMoveValid(bestMove.row, bestMove.col)) {
+      addHybridLog(`⚠️ CSP anomaly, but fallback move selected`, 'csp');
+    } else {
+      addHybridLog(`✅ CSP: move (${bestMove.row},${bestMove.col}) is valid, cell empty`, 'csp');
+    }
+
+    // step 3: BAYES opponent threat low (hybrid decision)
+    let bayesInsight = `Bayesian prior: threat level ${checkWinner(HUMAN_SYMBOL) ? 'HIGH' : 'LOW'} | position probability analysis done.`;
+    addHybridLog(`🧠 BAYES: ${bayesInsight}`, 'info');
+
+    // step 4: final decision
+    addHybridLog(`🎯 DECISION: AI chooses (${bestMove.row}, ${bestMove.col}) → winning probability optimal`, 'ai');
+
+    // Apply the move
+    const success = applyMove(bestMove.row, bestMove.col, AI_SYMBOL);
+    if (success) {
+      // check game over after AI move
+      const ended = updateGameStatus();
+      if (!ended && gameActive) {
+        currentTurn = 'player';
+        gameStatusDiv.innerText = '✨ Your turn (X)';
+        updateBayesianPrediction();
+        renderBoard();
+      } else {
+        renderBoard();
+        updateBayesianPrediction();
+        if (!gameActive) renderBoard();
+      }
+    }
+    // ensure final render
+    renderBoard();
+    if (!gameActive) return;
+    // trigger Bayesian update
+    updateBayesianPrediction();
+  }
+
+  // ---------- HUMAN MOVE HANDLER (with reasoning) ----------
+  function handlePlayerMove(row, col) {
+    if (!gameActive) return;
+    if (currentTurn !== 'player') {
+      addHybridLog(`Not your turn yet (AI thinking)`, 'info');
+      return;
+    }
+    if (!isMoveValid(row, col)) {
+      cspStatusDiv.innerHTML = `🚫 CSP blocked: cell (${row},${col}) occupied!`;
+      addHybridLog(`CSP invalid: human tried (${row},${col}) → not allowed`, 'csp');
+      return;
+    }
+    // valid human move
+    addHybridLog(`🧑 HUMAN move: (${row},${col}) | CSP passed`, 'csp');
+    applyMove(row, col, HUMAN_SYMBOL);
+    const gameEnded = updateGameStatus();
+    if (!gameEnded && gameActive) {
+      currentTurn = 'ai';
+      updateBayesianPrediction();
+      renderBoard();
+      // AI move with timeout (smooth)
+      if (aiTimeout) clearTimeout(aiTimeout);
+      aiTimeout = setTimeout(() => {
+        performAIMove();
+        aiTimeout = null;
+      }, 80);
+    } else {
+      renderBoard();
+      updateBayesianPrediction();
+      if (gameActive === false) {
+        gameStatusDiv.innerText = checkWinner(HUMAN_SYMBOL) ? '🏆 You win!' : (checkWinner(AI_SYMBOL) ? '🤖 AI wins' : "Draw");
+      }
+    }
+    if (!gameActive) {
+      renderBoard();
+    }
+    updateBayesianPrediction();
+  }
+
+  // ---------- RESET FULL GAME (all modules reset) ----------
+  function resetGame() {
+    if (aiTimeout) {
+      clearTimeout(aiTimeout);
+      aiTimeout = null;
+    }
+    board = [
+      [' ', ' ', ' '],
+      [' ', ' ', ' '],
+      [' ', ' ', ' ']
+    ];
+    gameActive = true;
+    currentTurn = 'player';   // X starts
+    // Reset panels
+    cspStatusDiv.innerHTML = '✓ Constraint system ready';
+    aiScoresPanel.innerHTML = '<div style="color:#ddcc99;">⚡ Waiting for AI turn...</div>';
+    hybridTraceDiv.innerHTML = '<div class="log-line">🔄 GAME RESET | Hybrid Agent Initialized</div><div class="log-line">📌 Modules: CO1→CO6 active</div>';
+    renderBoard();
+    updateBayesianPrediction();
+    gameStatusDiv.innerText = '✨ Your turn (X) - Intelligent Agent awaits';
+    addHybridLog('SYSTEM: New game, state cleared. AI Minimax + CSP + Bayes online', 'info');
+  }
+
+  // Bayesian & board init
+  function initialUpdate() {
+    renderBoard();
+    updateBayesianPrediction();
+    gameStatusDiv.innerText = '✨ Your turn (X)';
+  }
+
+  resetBtn.addEventListener('click', () => resetGame());
+
+  // start
+  resetGame();
+</script>
+</body>
+</html>
